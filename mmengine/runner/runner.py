@@ -289,6 +289,16 @@ class Runner:
         experiment_name: Optional[str] = None,
         cfg: Optional[ConfigType] = None,
     ):
+        """执行器初始化
+        - 惰性初始化（数据集和优化器封装）即先只拷贝配置参数稍后在任务循环中实例化
+        - 设置多卡环境和随机种子
+        - 创建日志器、消息枢纽、可视化器
+        - 创建模型并在其中创建数据预处理器，模型中各模块类构造函数的调用关系和其在配置文件的嵌套一样
+        - 注册钩子，即按照配置文件中的顺序调用各钩子类的构造函数
+        
+        Notes:
+            * 默认钩子的逻辑：默认自带 6 个钩子，每个默认钩子都有都用默认参数，如果传入某个默认钩子的参数为 None 则弹出禁用该钩子，不为 None 则更新该默认钩子的参数
+        """
         self._work_dir = osp.abspath(work_dir)
         mmengine.mkdir_or_exist(self._work_dir)
 
@@ -1700,6 +1710,18 @@ class Runner:
             self._has_loaded = True
 
     def train(self) -> nn.Module:
+        """执行器执行训练任务
+        - 创建训练循环/训练数据集/训练数据变换
+        - 创建优化器封装 + 执行学习率自动缩放 + 创建参数调度器
+        - 创建验证循环/(验证数据集/验证数据变换 + 评测器/评价指标)
+        - 执行 before_run 位点钩子，即依次调用各钩子的 before_run 方法，其他位点同理
+        - 加载预训练模型或恢复训练 + 执行训练循环
+        - 执行 after_run 位点钩子
+        
+        Notes:
+            * 学习率自动缩放：例如基准配置在 8xb6（即 8 卡每卡批量 6 ）时使用配置文件中的基准学习率，当实际运行配置为 2xb8 时，学习率自动缩放根据实际总批量/基准总批量 =16/48 的比率来缩放基准学习率
+            * default_collate 和 pseudo_collate：前者会合并列表并增加批量维度，后者保持列表结构不变，MMEngine 默认后者，但是 Pytorch 的默认行为是前者
+        """
         """Launch training.
 
         Returns:
@@ -1802,6 +1824,12 @@ class Runner:
         return metrics
 
     def test(self) -> dict:
+        """执行器执行测试任务，与验证过程一模一样
+        - 创建测试循环/(测试数据集/测试数据变换 + 评测器/评价指标)
+        - 执行 before_run 位点钩子，即依次调用各钩子的 before_run 方法，其他位点同理
+        - 加载预训练模型或恢复训练 + 执行测试循环
+        - 执行 after_run 位点钩子
+        """
         """Launch test.
 
         Returns:

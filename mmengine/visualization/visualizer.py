@@ -30,6 +30,23 @@ VisBackendsType = Union[List[Union[List, BaseDataElement]], BaseDataElement,
 
 @VISUALIZERS.register_module()
 class Visualizer(ManagerMixin):
+    """可视化器，包含两部分内容，一是封装 cv2 等的绘图绘点线框等（此部分无用），二是调用可视化后端保存运行时信息如 add_scalar 等
+    - 初始化
+        - 遍历可视化后端列表逐个创建可视化后端
+        - 若用 matplotlib 绘图时，用传入的形参初始化画布参数
+        - 若传入图像，将图像放到 matplotlib 的画布上
+    - 可视化显示，初始化窗口并显示
+    
+    Args:
+        image: 待可视化的数据，RGB 图像
+        vis_backends (list): 可视化后端配置列表
+        save_dir: 可视化后端需要的数据保存目录
+        fig_save_cfg/fig_show_cfg: 用 matplotlib 保存图或绘图时需要的画布参数
+    Funcs:
+        draw_bboxes|draw_lines|draw_texts|draw_circles|draw_points 等: 在 matplotlib 画布上画框、线、文本等
+        add_configs|add_scaler|add_datasample 等: 逐个可视化后端调用相应的方法保存配置、标量信息、数据样本等
+        set_image|get_image: 图像上画布或从画布获取图像
+    """
     """MMEngine provides a Visualizer class that uses the ``Matplotlib``
     library as the backend. It has the following functions:
 

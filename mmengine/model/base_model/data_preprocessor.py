@@ -17,6 +17,7 @@ CastData = Union[tuple, dict, BaseDataElement, torch.Tensor, list, bytes, str,
 
 @MODELS.register_module()
 class BaseDataPreprocessor(nn.Module):
+    """数据预处理器基类，基类只遍历批量数据并将数据搬到目标设备，具体来说 str 不变，Tensor 直接搬到显存，列表或字典等类型遍历逐个搬运"""
     """Base data pre-processor used for copying data to the target device.
 
     Subclasses inherit from ``BaseDataPreprocessor`` could override the
@@ -152,6 +153,16 @@ class BaseDataPreprocessor(nn.Module):
 
 @MODELS.register_module()
 class ImgDataPreprocessor(BaseDataPreprocessor):
+    """图像数据预处理器，额外支持图像归一化、边界填充等低计算量数据变换，相比在数据变换中执行，数据预处理器中执行可以提升数据搬运效率，因为前者处理后搬运的是 float32 数据而后者可以先搬运 uint8 再处理
+    - 递归搬运数据到目标设备
+    - 如果输入数据为图像列表，逐图像执行 交换颜色通道、图像归一化、边界填充
+    - 如果输入数据为图像张量，对此图像张量（可能包含多张图像）的依次执行相同的数据变换
+    
+    Args:
+        mean/std: 图像归一化参数
+        pad_size_divisor/pad_value: 边界填充参数
+        bgr_to_rgb/rgb_to_bgr: 任一项设置则执行交换颜色通道
+    """
     """Image pre-processor for normalization and bgr to rgb conversion.
 
     Accepts the data sampled by the dataloader, and preprocesses it into the

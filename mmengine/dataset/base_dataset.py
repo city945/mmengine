@@ -118,6 +118,22 @@ def force_full_init(old_func: Callable) -> Any:
 
 
 class BaseDataset(Dataset):
+    """数据集基类
+    - 初始化
+        - 加载数据集元信息、拼接根目录、创建数据变换管道
+        - 读文件加载数据信息列表并处理
+        - 过滤非法数据、数据信息列表序列化为字节流以节省内存
+    - 获取样本
+        - 获取当前样本的数据信息并执行数据变换管道
+    
+    Funcs:
+        parse_data_info: 默认只做路径拼接，子类中重写以实现额外计算变换矩阵等处理
+        filter_data: 默认不过滤，子类中重写以实现如过滤在训练集中却无标签的数据（ONCE 数据集中存在）
+        prepare_data: 默认只做获取当前样本的数据信息并执行数据变换管道，子类中重写以实现额外功能
+    Notes:
+        * 数据集元信息的优先级：有多种来源，取高优先级，数据集构造函数形参中传入的元信息 > 数据集类属性中的元信息 > 数据标注文件中的元信息
+        * 数据文件的路径处理：_join_prefix 中将 data_root（根目录）拼接上 data_prefix（数据文件的前缀目录）得到相对目录，再在 parse_data_info 中和 data_info（数据信息）中的数据文件名拼接得到完整路径
+    """
     r"""BaseDataset for open source projects in OpenMMLab.
 
     The annotation format is shown as follows.

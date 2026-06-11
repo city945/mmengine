@@ -91,6 +91,15 @@ class EpochBasedTrainLoop(BaseLoop):
         return self._iter
 
     def run(self) -> torch.nn.Module:
+        """执行基于轮数的训练循环
+        - 执行各个位点钩子
+        - 当训练轮数未到时执行一轮迭代（迭代数据集长度次数为一轮迭代）
+        - 每次迭代中先迭代训练数据集获得一个批量数据， 再执行模型训练步骤
+        - 每轮次结束时根据当前已训练轮数决定是否执行验证循环
+        
+        Notes:
+            * 基于轮数的训练循环：① 执行各个位点钩子 ② 当训练轮数未到时执行一轮迭代（迭代数据集长度次数为一轮迭代）③ 每次迭代中先迭代训练数据集获得一个批量数据， 再执行模型训练步骤 ④ 每轮次结束时根据当前已训练轮数决定是否执行验证循环
+        """
         """Launch training."""
         self.runner.call_hook('before_train')
 
@@ -195,6 +204,15 @@ class _InfiniteDataloaderIterator:
 
 @LOOPS.register_module()
 class IterBasedTrainLoop(BaseLoop):
+    """执行基于迭代次数的训练循环
+    - 执行各个位点钩子
+    - 当迭代次数未到时执行一次迭代（数据集转可迭代类型可无限迭代）
+    - 每次迭代中先迭代训练数据集获得一个批量数据，再执行模型训练步骤
+    - 每迭代结束时根据当前已迭代次数决定是否执行验证循环
+    
+    Notes:
+        * 基于迭代次数的训练循环：① 执行各个位点钩子 ② 当迭代次数未到时执行一次迭代（数据集转可迭代类型可无限迭代）③ 每次迭代中先迭代训练数据集获得一个批量数据，再执行模型训练步骤  ④ 每迭代结束时根据当前已迭代次数决定是否执行验证循环
+    """
     """Loop for iter-based training.
 
     Args:
@@ -328,6 +346,17 @@ class IterBasedTrainLoop(BaseLoop):
 
 @LOOPS.register_module()
 class ValLoop(BaseLoop):
+    """执行验证循环
+    - 执行各个位点钩子
+    - 每次迭代中先迭代验证数据集获得一个批量数据，再执行模型验证步骤，再评测器处理模型输出
+    - 所有迭代结束后计算评价指标
+    
+    Funcs:
+        _update_losses: 输入模型预测结果和当前损失字典，用模型预测结果中的损失字典更新当前损失字典
+        _parse_losses: 输入当前损失字典，计算每项损失的均值并返回一个新字典其键为损失名值为损失的均值
+    Notes:
+        * 验证循环：① 执行各个位点钩子 ② 每次迭代中先迭代验证数据集获得一个批量数据，再执行模型验证步骤，再评测器处理模型输出 ③ 所有迭代结束后计算评价指标
+    """
     """Loop for validation.
 
     Args:

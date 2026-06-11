@@ -14,6 +14,22 @@ from .data_preprocessor import BaseDataPreprocessor
 
 
 class BaseModel(BaseModule):
+    """模型基类
+    - 初始化
+        - 创建数据预处理器
+    - 训练步骤
+        - 执行优化器封装的上下文
+        - 执行数据预处理器，包括加载数据到显存、批量数据变换等
+        - 执行模型前向
+        - 解析损失字典 + 优化器封装执行反向传播更新模型参数
+    - 验证/测试步骤
+        - 执行数据预处理器，包括加载数据到显存、批量数据变换等
+        - 执行模型前向
+    
+    Funcs:
+        _run_forward: 批量数据解包作为 forward 的形参并调用 forward，一般不改而是让 forward 包含 kwargs 来装不用的参数
+        parse_losses: 解析损失字典，返回可以 backward 的损失以及可以被日志记录的损失
+    """
     """Base class for all algorithmic models.
 
     BaseModel implements the basic functions of the algorithmic model, such as

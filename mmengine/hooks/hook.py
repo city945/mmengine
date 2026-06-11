@@ -7,6 +7,7 @@ DATA_BATCH = Optional[Union[dict, tuple, list]]
 
 
 class Hook:
+    """接口类定义 before_run 等方法"""
     """Base hook class.
 
     All hooks should inherit from this class.

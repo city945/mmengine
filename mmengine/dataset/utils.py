@@ -43,6 +43,12 @@ def worker_init_fn(worker_id: int,
 
 @FUNCTIONS.register_module()
 def pseudo_collate(data_batch: Sequence) -> Any:
+    """不同于 PyTorch 默认的 default_collate 会直接将样本堆叠成张量，此'伪'批处理函数保持字典的结构不变并深入字典元素将字典中的列表或元组按位置合并
+    - 若批量中的数据样本（以第一个样本判定）类型为字符串或字节，无法转张量返回原值
+    - 若是具名元组，将同名字段合并为元组，过程为: 批量是具名元组的列表，*lst 解包作为位置参数，zip(*lst) 即 zip(item0, item1,...)，(for ) 是元组生成式得到 ((name1,name2,..), (age1, age2,...),...) 最后解包作为位置参数用来构造具名元组(可以视为类类型)，得到 [Person(name=name1,...), Person(name=name2,...)] -> Person(name=(name1,...), age=(age1,...),...)
+    - 若是列表或元组，先检查所有样本中该列表的长度均相等，再将某个位置处来自所有样本的该处的元素合并成元组，即 [[a1,b1], [a2,b2],...] -> [[(a1,a2,...), (b1,b2,...)]]
+    - 若为字典，则展开字典递归并按键合并即 [{0:a1,...}, {0:a2,...},...] -> [{0:[a1,a2,...],...}]
+    """
     """Convert list of data sampled from dataset into a batch of data, of which
     type consistent with the type of each data_itement in ``data_batch``.
 

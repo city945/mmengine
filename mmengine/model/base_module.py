@@ -64,6 +64,20 @@ class BaseModule(nn.Module, metaclass=ABCMeta):
         self._is_init = value
 
     def init_weights(self):
+        """
+        - 标记顶层调用者，创建权重初始化信息字典并挂载到所有子模块
+        - 若 init_cfg 非空，调用 initialize 执行基于配置字典的初始化
+        - 深度优先遍历子模块并执行其自定义初始化 init_weights
+        - 预训练权重最后加载
+        
+        Locals:
+            is_top_level_module: 标记当前 self 是否为顶层调用者，即 model，假设调用链为 model.init_weights() -> model.backbone.init_weights() -> model.backbone.conv1.init_weights()，不需要传入，顶层调用后会为子模块添加 _params_init_info 属性，有此属性不视为顶层调用者
+            _params_init_info (dict): 权重初始化信息字典，键为 nn.Parameter 类型的权重 (比如 conv1.weight) 的引用，值为该权重的初始化信息字典 ('init_info' 记录 "我最近被哪个模块初始化" 的字符串，'tmp_mean_value' 记录当前权重的均值作为指纹用于判断权重是否被更改)，注意此字典全模型共享 (顶层和子模块都有此属性)
+            _is_init: 标记当前模块是否已初始化，防重复，例如当误调用多次 model.init_weights() 或 当前模块为共享模块 (例如分支 self.b1, self.b2 = nn.Sequential(shared_encoder, nn.Conv2d), ... 中的 shared_encoder)
+        Notes:
+            * 关于自定义变量初始化权重参数：init_weights 在 BaseModule 中定义而非 Pytorch 接口，在 `Runner.train/Runner._init_model_weights` 中调用，而 `model.cuda()` 的操作在 `Runner.__init__/Runner.wrap_model` 中执行，故用自定义变量初始化权重参数需考虑设备类型
+            * 关于 init_cfg 和 init_weights：见 `BaseModule.init_weights`，两者都会执行，先执行 init_cfg 再执行 init_weights，init_cfg 适合批量初始化如 Linear 类的初始化方式，init_weights 自定义初始化可以针对具体某个变量做
+        """
         """Initialize the weights."""
 
         is_top_level_module = False
