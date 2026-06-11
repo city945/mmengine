@@ -493,7 +493,11 @@ class BaseDataElement:
         """Convert all tensors to CPU in data."""
         new_data = self.new()
         for k, v in self.items():
+# @FIXME 0 ------------------------------------------------------------
+# 无法枚举全部带张量的类型，如下游视觉库的 BaseInstance3DBoxes，可如下修改
             if isinstance(v, (torch.Tensor, BaseDataElement)):
+            # if hasattr(v, 'cpu') and callable(getattr(v, 'cpu')):
+# @FIXME 0 ------------------------------------------------------------
                 v = v.cpu()
                 data = {k: v}
                 new_data.set_data(data)
